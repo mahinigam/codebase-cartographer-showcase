@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Codebase Cartographer — Structural forensics for code</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F5F7F4;--bg2:#E9EFEB;--ink:#10231C;--body:#3B4E45;--mute:#7C8C84;--g:#294B3A;--gd:#1B3428;--b:#174A78;--i:#3F4F80;--gl:#8FC0A6;--bl:#7DB6E6;--il:#A3B1E6;--line:#CFD9D3;
+--p-bg:#0B2036;--p-bg2:#081827;--p-s:#133250;--p-b:#234B6E;--cy:#7DB6E6;--mg:#A3B1E6;--red:#E5566D;--amb:#8FA0DA;--grn:#6CBF95;--t1:#F4F8FB;--t2:#C9D9E8;--t3:#8FA6BD;
+--serif:'Fraunces',Georgia,serif;--sans:'Figtree',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--hand:'Caveat',cursive}
+:root:not([data-theme=light]){color-scheme:light}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth;height:100%}
+body{background:var(--bg);color:var(--body);font:400 17px/1.65 var(--sans);overflow-x:hidden;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+::selection{background:var(--g);color:#fff}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;opacity:.07;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E")}
+h1,h2,h3{font-family:var(--serif);color:var(--ink);font-weight:400;line-height:1.08;letter-spacing:-.02em}
+h2{font-size:clamp(34px,5.4vw,64px)}
+h2 em,h1 em{font-style:italic;color:var(--b)}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px;position:relative}
+section{padding:120px 0;position:relative}
+.eyebrow{font:500 12px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--g);display:inline-flex;align-items:center;gap:10px;margin-bottom:22px}
+.eyebrow:before{content:"";width:26px;height:3px;background:var(--g);border-radius:3px;transform:rotate(-3deg)}
+.hand{font-family:var(--hand);color:var(--g);font-size:24px}
+nav{position:fixed;top:0;left:0;right:0;z-index:40;padding:calc(14px + env(safe-area-inset-top,0px)) 24px 14px;display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(12px);background:rgba(245,247,244,.7)}
+nav b{font:600 20px var(--serif);color:var(--ink)}nav b i{color:var(--g)}
+.btn{display:inline-block;padding:14px 26px;border-radius:14px 10px 15px 9px;font-weight:600;text-decoration:none;font-size:16px;transition:.3s cubic-bezier(.16,1,.3,1);border:2px solid var(--ink)}
+.btn.p{background:var(--g);border-color:var(--g);color:#fff;box-shadow:4px 5px 0 var(--b)}
+.btn.p:hover{transform:translate(2px,3px);box-shadow:2px 2px 0 var(--b)}
+.btn.s{color:var(--ink)}.btn.s:hover{background:var(--ink);color:var(--bg)}
+/* watercolor */
+.blob{position:absolute;border-radius:50%;filter:url(#rough) blur(30px);opacity:.55;pointer-events:none;will-change:transform}
+.blk{position:absolute;border-radius:14px 8px 16px 6px;filter:url(#rough);animation:fl 7s ease-in-out infinite}
+@keyframes fl{50%{transform:translateY(-16px) rotate(3deg)}}
+.rv{opacity:0;transform:translateY(40px);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1);transition-delay:calc(var(--d,0)*100ms)}
+.rv.in{opacity:1;transform:none}
+.sc{transform:scale(.92)}.sc.in{transform:none}
+/* hero */
+#hero{min-height:100vh;padding-top:150px;text-align:center;overflow:hidden}
+#hero h1{font-size:clamp(44px,8vw,104px);max-width:980px;margin:0 auto 26px}
+#hero h1 span{display:inline-block;opacity:0;transform:translateY(50px) rotate(4deg);animation:up .9s cubic-bezier(.16,1,.3,1) forwards;animation-delay:calc(var(--i)*70ms + 200ms)}
+@keyframes up{to{opacity:1;transform:none}}
+#hero p.sub{max-width:660px;margin:0 auto 34px;font-size:19px;opacity:0;animation:up 1s 1.2s forwards}
+.ctas{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;opacity:0;animation:up 1s 1.5s forwards}
+.stage{perspective:1400px;margin-top:80px}
+.stage .win{transform:rotateX(18deg) scale(.94);transform-origin:top;transition:transform .1s linear}
+/* product window */
+.win{background:var(--p-bg);border-radius:16px;border:1px solid #2F5B82;box-shadow:0 40px 90px -20px rgba(16,35,28,.5),0 0 0 8px rgba(255,255,255,.35);overflow:hidden;text-align:left;color:var(--t2);font:13px/1.5 Inter,var(--sans)}
+.bar{display:flex;gap:7px;padding:12px 16px;background:var(--p-bg2);border-bottom:1px solid var(--p-b);align-items:center}
+.bar i{width:11px;height:11px;border-radius:50%;background:#2F5B82}.bar i:nth-child(1){background:#F43F5E}.bar i:nth-child(2){background:#F59E0B}.bar i:nth-child(3){background:#10B981}
+.bar span{margin:0 auto;background:var(--p-s);border:1px solid #2F5B82;border-radius:8px;padding:3px 40px;font-size:12px;color:var(--t3)}
+.ws{display:grid;grid-template-columns:170px 1fr 220px;height:420px}
+.ws aside{background:var(--p-bg2);padding:14px;font-size:12px;overflow:hidden}
+.ws aside h6{font:600 10px Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:0 0 10px}
+.ws aside div{padding:4px 0;color:var(--t2);white-space:nowrap}
+.gc{position:relative;background:var(--p-bg);background-image:radial-gradient(circle at 24px 24px,rgba(255,255,255,.08) 1px,transparent 1px);background-size:28px 28px;overflow:hidden}
+.gc svg{position:absolute;inset:0;width:100%;height:100%}
+.gc line{stroke:rgba(255,255,255,.18);stroke-width:1.5;vector-effect:non-scaling-stroke;transition:.5s}
+.nd{position:absolute;width:118px;padding:6px 8px;background:rgba(19,50,80,.75);backdrop-filter:blur(8px);border:1px solid #2F5B82;border-radius:4px;transform:translate(-50%,-50%);transition:.5s}
+.nd small{display:block;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--t3)}
+.nd b{display:block;color:#fff;font-size:12px}.nd em{font:10px var(--mono);font-style:normal;color:var(--t3)}
+.nd.hi{border-color:var(--red);background:rgba(244,63,94,.15);box-shadow:0 0 18px rgba(244,63,94,.45)}
+.nd.sel{border-color:var(--cy);box-shadow:0 0 18px rgba(125,182,230,.4)}
+.gc.imp .nd:not(.on){opacity:.3}.gc.imp line:not(.on){opacity:.15}
+.gc line.on{stroke:var(--red);stroke-dasharray:6 5;animation:dash 1s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-22}}
+.tb{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(19,50,80,.85);border:1px solid var(--p-b);border-radius:10px;padding:5px 14px;font-size:11px;color:var(--t2);white-space:nowrap;backdrop-filter:blur(8px)}
+.tb b{color:var(--cy)}
+.chip{display:inline-block;font-size:10px;font-weight:600;padding:1px 7px;border-radius:4px;background:rgba(163,177,230,.18);color:var(--mg);letter-spacing:.06em;margin-left:6px}
+.rk{background:var(--red);color:#fff;border-radius:6px;padding:2px 8px;font-weight:600;font-size:12px}
+.bars div.r{display:grid;grid-template-columns:70px 1fr 30px;gap:10px;align-items:center;margin:11px 0;font-size:12px}
+.bars .tr{height:8px;background:rgba(255,255,255,.06);border-radius:8px;overflow:hidden}.bars .tr i{display:block;height:100%;border-radius:8px;width:0;transition:width 1.2s cubic-bezier(.16,1,.3,1)}
+.pane{padding:22px;height:420px;overflow:hidden}
+.pane h4{color:var(--t1);font-size:16px;margin-bottom:4px}
+.pane .sec{font:600 10px Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin:16px 0 6px}
+.pane .row{padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.card{max-width:340px;margin:28px auto;background:var(--p-bg2);border:1px solid var(--p-b);border-radius:12px;padding:30px;text-align:center}
+.card h4{font-size:22px;margin:8px 0 4px}
+.card .in{background:var(--p-s);border:1px solid #2F5B82;border-radius:8px;padding:9px;margin:16px 0 10px;color:var(--t3);font-family:var(--mono);font-size:12px}
+.card .go{background:var(--cy);color:#0B2036;border-radius:8px;padding:9px;font-weight:600;margin-top:14px}
+.pal{max-width:430px;margin:20px auto;background:var(--p-s);border:1px solid var(--p-b);border-radius:12px;box-shadow:0 30px 60px rgba(0,0,0,.5)}
+.pal .q{padding:14px 16px;border-bottom:1px solid var(--p-b);color:var(--t1)}
+.pal .it{padding:9px 16px}.pal .it.s{background:#1D4468}.pal .it small{display:block;color:var(--t3);font-size:11px}
+/* problem */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+.two p{margin:0 0 16px}
+.chaos{aspect-ratio:1;position:relative}.chaos svg{width:100%;height:100%}
+.chaos path{fill:none;stroke:#7C8C84;stroke-width:1.6;stroke-dasharray:500;stroke-dashoffset:500;transition:stroke-dashoffset 2.4s ease}
+.chaos.in path{stroke-dashoffset:0;animation:wob 4s ease-in-out infinite}
+@keyframes wob{50%{transform:translate(4px,-3px)}}
+/* steps */
+#how{background:linear-gradient(var(--bg),var(--bg2) 20%,var(--bg2) 80%,var(--bg))}
+.how{display:grid;grid-template-columns:1fr 1.25fr;gap:56px}
+.steps .st{min-height:78vh;display:flex;flex-direction:column;justify-content:center;opacity:.28;transition:.5s}
+.steps .st.on{opacity:1}
+.steps .n{font:600 90px/1 var(--serif);color:var(--g);opacity:.35}
+.steps h3{font-size:clamp(28px,3.4vw,42px);margin:6px 0 14px}
+.sticky{position:sticky;top:15vh;height:max-content}
+.sticky .win{transition:opacity .35s}
+.dots{display:flex;gap:8px;justify-content:center;margin-top:20px}.dots i{width:28px;height:5px;border-radius:5px;background:var(--line);transition:.4s}.dots i.on{background:var(--g);width:48px}
+/* ai */
+.tier{padding:36px;border:2px solid var(--ink);background:#FBFCFA}
+.t1{border-radius:6px 22px 6px 22px;box-shadow:8px 8px 0 var(--b)}.t2{border-radius:34px 10px 34px 10px;box-shadow:8px 8px 0 var(--i)}
+.tier h3{font-size:28px;margin:8px 0 12px}
+.bonds{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:14px;margin-top:18px;counter-reset:b}
+.bonds span:before{counter-increment:b;content:counter(b,decimal-leading-zero);font:500 11px var(--mono);color:var(--g);margin-right:8px}
+.casc{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:18px;font:500 13px var(--mono)}
+.casc b{background:var(--bg2);border:1.5px dashed var(--g);border-radius:10px;padding:6px 10px;font-weight:500}
+/* compare */
+.cmp{display:grid;grid-template-columns:1fr 1fr;border-radius:26px;overflow:hidden;border:2px solid var(--ink);margin-top:50px}
+.cmp>div{padding:14px 28px}
+.cmp .b{background:#E3E8E5;color:#7d8985;filter:grayscale(1)}.cmp .a{background:#FBFCFA;color:var(--ink)}
+.cmp .h{font:600 22px var(--serif);padding-top:26px}
+.cmp .a:not(.h):before{content:"✓ ";color:var(--b);font-weight:700}
+.cmp .b:not(.h):before{content:"✕ ";color:#9aa8a1}
+.cmp>div:not(.h){border-top:1px dashed var(--line)}
+/* stats */
+#stats{background:var(--b);color:#DCE8F4;border-radius:48px 48px 0 0;margin-top:-1px}
+#stats h2{color:var(--bg);text-align:center;margin-bottom:60px}
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:36px 20px;text-align:center}
+.sg b{display:block;font:400 clamp(44px,6vw,78px)/1 var(--serif);color:#CFE4F7}.sg div:nth-child(3n) b{color:#C3CDF2}.sg div:nth-child(4n) b{color:#B5DBC6}
+.sg span{font-size:14px;color:rgba(255,255,255,.72)}
+#tech{padding-top:110px}
+.tg{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px;margin-top:50px}
+.tc{background:#FBFCFA;border:1.5px solid var(--line);border-radius:18px 8px 18px 8px;padding:22px;box-shadow:0 8px 24px -12px rgba(16,35,28,.28);transition:.4s}
+.tc:hover{transform:translateY(-6px) rotate(-1deg);border-color:var(--g)}
+.tc h4{font:600 12px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--g);margin-bottom:10px}
+.tc:nth-child(3n+2) h4{color:var(--b)}.tc:nth-child(3n) h4{color:var(--i)}
+.tc p{font-size:15px;color:var(--ink)}
+/* terminal */
+.term{background:var(--g);color:#E9EFEB;border-radius:18px;padding:26px;font:14px/1.8 var(--mono);min-height:330px;box-shadow:10px 10px 0 var(--b);overflow-x:auto;white-space:pre}
+.term .c{color:#A9C7B7}.term .k{color:#CDE8D8}
+.caret:after{content:"▍";animation:bl 1s steps(1) infinite;color:#CDE8D8}@keyframes bl{50%{opacity:0}}
+table{width:100%;border-collapse:collapse;font-size:15px;margin-top:18px}td,th{text-align:left;padding:8px 10px;border-bottom:1px dashed var(--line)}code{font-family:var(--mono);font-size:13px;color:var(--b)}
+footer{padding:80px 0 50px;text-align:center;position:relative;overflow:hidden}
+footer h3{font-size:34px}footer a{color:var(--b)}
+@media(max-width:860px){section{padding:80px 0}.two,.how,.cmp{grid-template-columns:1fr}.ws{grid-template-columns:1fr}.ws aside{display:none}.sg{grid-template-columns:1fr 1fr}.steps .st{min-height:auto;padding:40px 0;opacity:1}.sticky{position:relative;top:0;order:-1;position:sticky;top:60px;z-index:5}.bonds{grid-template-columns:1fr}.stage .win{transform:none!important}.gc{height:330px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rv,#hero h1 span,#hero p.sub,.ctas{opacity:1;transform:none}.chaos path{stroke-dashoffset:0}}
+.blk{filter:url(#crayon)}
+.ck{position:relative}.ck:before{content:"";position:absolute;inset:-4px;border:2.5px solid var(--ink);border-radius:inherit;filter:url(#crayon);pointer-events:none}
+.btn.s{border-color:transparent;position:relative}.btn.s:before{content:"";position:absolute;inset:-3px;border:3px solid var(--ink);border-radius:inherit;filter:url(#crayon);pointer-events:none}
+.tc{position:relative}.tc:before{content:"";position:absolute;inset:-3px;border:2.5px solid var(--g);border-radius:inherit;filter:url(#crayon);pointer-events:none;opacity:.7}
+.tc:nth-child(3n+2):before{border-color:var(--b)}.tc:nth-child(3n):before{border-color:var(--i)}
+h1 em,h2 em{position:relative;display:inline-block}
+h1 em:after,h2 em:after{content:"";position:absolute;left:-3%;right:-3%;bottom:.02em;height:.2em;background:var(--g);opacity:.5;border-radius:50%;filter:url(#crayon);transform:rotate(-1.5deg);transform-origin:left;animation:ul 1.2s 1.4s cubic-bezier(.16,1,.3,1) backwards}
+@keyframes ul{from{transform:rotate(-1.5deg) scaleX(0)}}
+.eyebrow:before{filter:url(#crayon);height:5px}
+.sq{display:block;width:min(1000px,90%);margin:-40px auto;height:50px;overflow:visible;position:relative;z-index:2}
+.sq path{stroke-width:6;fill:none;stroke-linecap:round;stroke-dasharray:1400;stroke-dashoffset:1400;transition:stroke-dashoffset 2.2s ease;filter:url(#crayon)}
+.sq.in path{stroke-dashoffset:0}
+.hatch{position:absolute;pointer-events:none;filter:url(#crayon);opacity:.55}
+.win{position:relative}.win:after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+.card svg{filter:drop-shadow(0 0 10px rgba(125,182,230,.5))}
+.gc .card svg{position:static;inset:auto;width:40px;height:40px;display:block;margin:0 auto 6px}
+@media(prefers-reduced-motion:reduce){#cv{display:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><filter id="crayon" x="-5%" y="-30%" width="110%" height="160%"><feTurbulence type="fractalNoise" baseFrequency=".04" numOctaves="3" seed="2" result="w"/><feDisplacementMap in="SourceGraphic" in2="w" scale="7" result="d"/><feTurbulence type="fractalNoise" baseFrequency=".75" numOctaves="2" seed="7" result="g"/><feColorMatrix in="g" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.8 0 0 0 -.65" result="m"/><feComposite in="d" in2="m" operator="in"/></filter><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="3" seed="4"/><feDisplacementMap in="SourceGraphic" scale="14"/></filter></svg>
+
+<nav><b>Cartographer<i>.</i></b><a class="btn s" style="padding:8px 18px;font-size:14px" href="https://github.com/mahinigam/codebase-cartographer">GitHub ↗</a></nav>
+
+<section id="hero">
+  <div class="blob" data-p=".3" style="width:640px;height:520px;left:-160px;top:-100px;background:radial-gradient(#5F9B7E,#8FC0A6 60%,transparent)"></div>
+  <div class="blob" data-p=".45" style="width:520px;height:460px;right:-140px;top:220px;background:radial-gradient(#6C86C4,#3F4F8088 55%,transparent);opacity:.4"></div>
+  <div class="blk" style="width:70px;height:56px;left:9%;top:30%;background:var(--g);animation-delay:-1s"></div>
+  <div class="blk" style="width:46px;height:46px;left:16%;top:52%;background:var(--gl);animation-delay:-3s"></div>
+  <div class="blk" style="width:62px;height:50px;right:10%;top:26%;background:var(--b);animation-delay:-2s"></div>
+  <div class="blk" style="width:40px;height:52px;right:17%;top:50%;background:var(--i);animation-delay:-4s"></div>
+  <div class="blk" style="width:34px;height:34px;left:5%;top:46%;background:var(--b);animation-delay:-5s"></div>
+  <div class="blk" style="width:54px;height:40px;right:5%;top:40%;background:var(--gl);animation-delay:-2.5s"></div>
+  <div class="blk" style="width:28px;height:44px;left:24%;top:24%;background:var(--i);animation-delay:-6s"></div>
+  <svg class="hatch" style="left:3%;top:14%;width:170px;height:130px" viewBox="0 0 170 130" fill="none" stroke="#294B3A" stroke-width="5" stroke-linecap="round"><path d="M10 20L120 8M14 50L140 34M8 84L110 66M20 112L150 96"/></svg>
+  <svg class="hatch" style="right:3%;top:58%;width:150px;height:120px" viewBox="0 0 150 120" fill="none" stroke="#174A78" stroke-width="5" stroke-linecap="round"><path d="M12 100C40 20 80 20 100 60S130 90 140 30"/><path d="M20 112C50 40 90 44 108 76"/></svg>
+  <svg style="position:absolute;inset:0;width:100%;height:700px;pointer-events:none" viewBox="0 0 1200 700" preserveAspectRatio="none" fill="none" stroke="#294B3A" stroke-width="3" stroke-linecap="round" filter="url(#rough)" opacity=".5"><path class="draw" d="M130 230C170 320 200 360 250 400M1050 210C1000 300 980 340 960 390"/></svg>
+  <div class="wrap">
+    <div class="eyebrow" style="animation:up 1s forwards;opacity:0">Structural forensics for code</div>
+    <h1 id="h1"></h1>
+    <p class="sub">Codebase Cartographer turns any repository into a navigable knowledge graph — static analysis, AI reasoning and interactive visualization, exposing the true structure of your software.</p>
+    <div class="ctas"><a class="btn p" href="https://github.com/mahinigam/codebase-cartographer">View on GitHub →</a><a class="btn s" href="#how">See how it works</a></div>
+    <div class="stage"><div class="win" id="heroWin"><div class="bar"><i></i><i></i><i></i><span>localhost:5173</span></div>
+      <div class="ws"><aside><h6>Explorer</h6><div>▾ app</div><div>&nbsp;&nbsp;main.py</div><div>&nbsp;&nbsp;▾ services</div><div>&nbsp;&nbsp;&nbsp;&nbsp;graph.py</div><div>&nbsp;&nbsp;&nbsp;&nbsp;risk.py</div><div>&nbsp;&nbsp;▾ api</div><div>&nbsp;&nbsp;&nbsp;&nbsp;routes.py</div><div>▸ tests</div></aside>
+      <div class="gc g" data-m="graph"></div>
+      <aside style="border-left:1px solid var(--p-b)"><h6>Inspector</h6><div style="color:#fff;font-weight:600">graph.py <span class="rk">Risk 82</span></div><div style="color:var(--t3)">app/services · python</div><div class="bars" style="margin-top:12px"><div class="r"><span>Fan-in</span><div class="tr"><i style="background:var(--red);width:88%"></i></div></div><div class="r"><span>Complex</span><div class="tr"><i style="background:var(--amb);width:60%"></i></div></div><div class="r"><span>Churn</span><div class="tr"><i style="background:var(--grn);width:25%"></i></div></div></div></aside></div></div></div>
+  </div>
+</section>
+
+<section id="problem"><div class="blob" data-p=".3" style="width:420px;height:380px;right:-100px;top:60px;background:radial-gradient(#CBD9D0,transparent 70%)"></div>
+  <div class="wrap two"><div><div class="eyebrow rv">Before Cartographer</div><h2 class="rv" style="--d:1">Your codebase is a <em>black box.</em></h2><br>
+    <p class="rv" style="--d:2">Large codebases are notoriously difficult to change safely. Their real architecture is buried under complex import trees, historical patches, and undocumented conventions.</p>
+    <p class="rv" style="--d:3">Which files are load-bearing? What breaks if you refactor this module? Is any of this code even used anymore?</p>
+    <p class="rv hand" style="--d:4">Without structural forensics, you're navigating blind.</p></div>
+    <div class="chaos rv sc"><svg viewBox="0 0 400 400" filter="url(#rough)"><path d="M40 60C200 20 320 200 60 300S340 380 360 120"/><path d="M80 340C120 100 300 60 340 300S60 180 90 60"/><path d="M30 200C150 320 250 60 370 220S100 390 200 40"/><path d="M60 120C300 180 100 260 350 340"/><path d="M340 40C100 100 300 240 50 380"/><text x="70" y="90" font-size="44" fill="#7C8C84" stroke="none">?</text><text x="290" y="330" font-size="52" fill="#7C8C84" stroke="none">?</text><text x="300" y="120" font-size="34" fill="#7C8C84" stroke="none">?</text><rect x="150" y="170" width="90" height="46" rx="6" stroke-dasharray="4 5"/></svg></div></div></section>
+
+<section><div class="wrap" style="text-align:center"><div class="eyebrow rv">After Cartographer</div><h2 class="rv" style="--d:1">See everything.<br><em>Understand everything.</em></h2><p class="rv" style="--d:2;margin:18px auto 50px;max-width:520px">Point Cartographer at your repo. In minutes, the black box becomes a navigable map.</p>
+  <div class="win rv sc"><div class="gc g" data-m="graph" style="height:440px"></div></div>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:34px"><span class="btn s rv">Interactive Knowledge Graph</span><span class="btn s rv" style="--d:1">Risk-Scored Files</span><span class="btn s rv" style="--d:2">AI-Powered Insights</span></div></div></section>
+
+<svg class="sq" viewBox="0 0 1000 50" preserveAspectRatio="none"><path style="stroke:#294B3A" d="M5 30C80 5 130 48 210 26S330 6 420 30 560 44 650 22 800 8 880 30 960 34 995 20"/></svg>
+<section id="how"><div class="wrap"><div class="eyebrow">How it works</div><h2 style="margin-bottom:40px">Six steps from <em>folder</em> to <em>map.</em></h2>
+  <div class="how"><div class="steps" id="steps">
+   <div class="st"><div class="n">01</div><h3>Point. Scan. Index.</h3><p>Paste an absolute path to any local repository. Cartographer parses every Python, JavaScript, and TypeScript file — classes, functions, imports, cyclomatic complexity. GitPython mines up to 500 commits for churn.</p></div>
+   <div class="st"><div class="n">02</div><h3>From flat files to a knowledge graph.</h3><p>Every file becomes a node. Every import becomes an edge. A full Neo4j graph of your true dependency architecture — not the folder structure.</p></div>
+   <div class="st"><div class="n">03</div><h3>Find what's fragile before it breaks.</h3><p>A composite risk score: 45% fan-in, 25% complexity, 20% Git churn, 10% fan-out. Jev enhances it with semantic scoring — flagging chokepoints, security-critical files and abandoned code.</p></div>
+   <div class="st"><div class="n">04</div><h3>Deep-dive into any file.</h3><p>Click a node to open the Inspector: risk components, AI summary, symbols, imports, dependents, external dependencies and a refactor-safety assessment.</p></div>
+   <div class="st"><div class="n">05</div><h3>Ask your codebase anything.</h3><p>Press Cmd+K. Ask “Where does authentication happen?” Jev routes the query, Neo4j retrieves structural evidence, Gemini reasons over it — you get a grounded answer with clickable file links.</p></div>
+   <div class="st"><div class="n">06</div><h3>Know what breaks before you break it.</h3><p>Trace up to 6 hops through the dependency graph. The Jev safety gate tells you if a single PR is safe, estimates blast radius (1–10) and recommends a strategy from 8 options.</p></div>
+  </div><div class="sticky"><div class="win"><div class="bar"><i></i><i></i><i></i><span id="ttl">scan</span></div><div id="mock"></div></div><div class="dots" id="dots"><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div></div></section>
+
+<svg class="sq" viewBox="0 0 1000 50" preserveAspectRatio="none"><path style="stroke:#174A78" d="M5 30C80 5 130 48 210 26S330 6 420 30 560 44 650 22 800 8 880 30 960 34 995 20"/></svg>
+<section><div class="blob" data-p=".35" style="width:500px;height:400px;left:-120px;top:200px;background:radial-gradient(#7DB6E6,transparent 70%);opacity:.3"></div><div class="blob" data-p=".4" style="width:500px;height:400px;right:-120px;top:300px;background:radial-gradient(#A3B1E6,transparent 70%);opacity:.3"></div>
+ <div class="wrap"><div style="text-align:center;max-width:720px;margin:0 auto 60px"><div class="eyebrow rv">The two-tier AI brain</div><h2 class="rv" style="--d:1">Two AI systems. <em>One mission.</em></h2><p class="rv" style="--d:2;margin-top:16px">A fast structured decision engine and a deep generative reasoner, working in concert.</p></div>
+  <div class="two" style="align-items:stretch;gap:36px">
+   <div class="tier t1 rv"><div class="eyebrow" style="color:#174A78">System One</div><h3>Fast &amp; structured.</h3><p>TypeSafe Jev is the decision engine. With three primitives — Choice, Noul and Score — it powers 10 integration bonds that classify, score and route in milliseconds.</p><div class="bonds"><span>File Classification</span><span>Semantic Risk Scoring</span><span>Test File Detection</span><span>Query Routing</span><span>Cluster Assessment</span><span>Refactor Safety Gate</span><span>Summary Triage</span><span>Framework Detection</span><span>Re-summarization Check</span><span>Dead Code Detection</span></div></div>
+   <div class="tier t2 rv" style="--d:2"><div class="eyebrow" style="color:#3F4F80">System Two</div><h3>Deep &amp; generative.</h3><p>Gemini is the reasoning layer: architectural summaries, 768-dimensional embeddings for semantic search, RAG answers to free-form questions, and detailed impact narratives.</p><div class="casc"><b>Gemini</b>→<b>Ollama · qwen2.5-coder:7b</b>→<b>Deterministic fallback</b></div></div></div></div></section>
+
+<section style="background:var(--bg2)"><div class="wrap"><h2 class="rv" style="text-align:center">The <em>transformation.</em></h2>
+ <div class="cmp rv sc"><div class="b h">Before Cartographer</div><div class="a h">After Cartographer</div>
+ <div class="b">“Where does authentication live?” means hours of grep</div><div class="a">Ask in natural language, get answers in seconds with file links</div>
+ <div class="b">Refactoring blind</div><div class="a">Full transitive impact trace, 1–6 hops deep</div>
+ <div class="b">Risk assessment = gut feeling</div><div class="a">Composite risk: fan-in, complexity, churn, fan-out + AI</div>
+ <div class="b">Onboarding takes weeks</div><div class="a">AI summaries for every file, interactive exploration</div>
+ <div class="b">Dead code accumulates silently</div><div class="a">Probabilistic dead-code detection with reasons</div>
+ <div class="b">Module boundaries are vague</div><div class="a">Cohesion/coupling analysis with extraction-readiness</div></div></div></section>
+
+<section id="stats"><div class="wrap"><h2 class="rv">Built for serious codebases.</h2><div class="sg">
+ <div><b data-n="40" data-s="+">0</b><span>Architectural roles</span></div><div><b data-n="10">0</b><span>AI decision bonds</span></div><div><b data-n="6">0</b><span>Hop impact tracing</span></div><div><b data-n="768">0</b><span>Embedding dimensions</span></div>
+ <div><b data-n="500">0</b><span>Git commits analyzed</span></div><div><b data-n="12">0</b><span>REST endpoints</span></div><div><b data-n="90" data-s="%+">0</b><span>Backend test coverage</span></div><div><b data-n="85" data-s="%+">0</b><span>Frontend test coverage</span></div></div></div></section>
+
+<svg class="sq" viewBox="0 0 1000 50" preserveAspectRatio="none"><path style="stroke:#3F4F80" d="M5 30C80 5 130 48 210 26S330 6 420 30 560 44 650 22 800 8 880 30 960 34 995 20"/></svg>
+<section id="tech"><div class="wrap"><div style="text-align:center"><h2 class="rv">Engineered with <em>precision.</em></h2><p class="rv" style="--d:1;margin-top:12px">Every layer of the stack chosen for a reason.</p></div><div class="tg" id="tg"></div></div></section>
+
+<section><div class="blob" data-p=".3" style="width:500px;height:400px;right:-100px;top:0;background:radial-gradient(#8FC0A6,transparent 70%);opacity:.5"></div><div class="wrap two" style="align-items:start"><div><h2 class="rv">Get started<br>in <em>4 steps.</em></h2><p class="rv" style="--d:1;margin:16px 0 26px">Run locally. No cloud required. Your code never leaves your machine.</p>
+ <p class="rv"><b style="color:var(--ink)">Prerequisites:</b> Neo4j 5 (Docker recommended) · Python 3.12+ with uv · Node.js 22+</p>
+ <table class="rv"><tr><th>Variable</th><th>Needed</th></tr><tr><td><code>GEMINI_API_KEY</code></td><td>AI features</td></tr><tr><td><code>TYPESAFE_API_KEY</code></td><td>Jev features</td></tr><tr><td><code>NEO4J_PASSWORD</code></td><td>Yes</td></tr></table>
+ <p class="rv" style="margin-top:18px;font-size:15px">Prefer one command? <code>docker compose up --build</code> starts Neo4j (7474/7687), backend (8000) and frontend (5173).</p></div>
+ <div class="term rv sc" id="term"></div></div></section>
+
+<footer><div class="blob" style="width:600px;height:300px;left:20%;bottom:-160px;background:radial-gradient(#294B3A,transparent 70%);opacity:.35"></div><div class="wrap"><h3>Codebase Cartographer</h3><p style="margin:8px 0 22px">Structural forensics for software repositories.</p><a class="btn p" href="https://github.com/mahinigam/codebase-cartographer">★ Star on GitHub</a><p style="margin-top:26px;font-size:14px">Built by <a href="https://github.com/mahinigam">Mahi Nigam</a> · MIT License · <a href="https://github.com/mahinigam/codebase-cartographer/issues">Report issues</a></p></div></footer>
+
+<canvas id="cv" style="position:fixed;inset:0;pointer-events:none;z-index:49"></canvas>
+<script>
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
+// hero title
+$('#h1').innerHTML='Map the <em>Architecture</em> Hidden Inside Your Code'.split(' ').map((w,i)=>`<span style="--i:${i}">${w}</span>`).join(' ');
+// graph
+const N=[[15,22,'app','main.py','py · 210',0],[38,14,'app/api','routes.py','py · 340',0],[38,48,'app/api','deps.py','py · 96',0],[62,20,'app/services','graph.py','py · 812',1],[62,52,'app/services','risk.py','py · 430',0],[84,14,'app/core','config.py','py · 120',0],[84,42,'app/db','neo4j.py','py · 275',1],[84,74,'app/utils','hash.py','py · 60',0],[38,80,'tests','test_graph.py','py · 190',0],[15,62,'app/models','schemas.py','py · 300',0]];
+const E=[[0,1],[0,2],[1,3],[1,2],[2,4],[3,5],[3,6],[4,6],[4,7],[8,3],[9,1],[0,9],[6,5]];
+const Y=y=>8+y*.7;
+function graph(el,m){const imp=m==='impact',t=3,on=new Set([3]);if(imp){E.forEach(([a,b])=>{if(b===t||a===t){on.add(a);on.add(b)}});[1,8,0].forEach(i=>on.add(i))}
+ el.classList.toggle('imp',imp);el.innerHTML=`<svg viewBox="0 0 100 100" preserveAspectRatio="none">${E.map(([a,b])=>`<line x1="${N[a][0]}" y1="${Y(N[a][1])}" x2="${N[b][0]}" y2="${Y(N[b][1])}" class="${imp&&(a===t||b===t||(on.has(a)&&on.has(b)))?'on':''}"/>`).join('')}</svg>`+
+ N.map((n,i)=>`<div class="nd ${n[5]?'hi':''} ${i===t&&m!=='graph'?'sel':''} ${on.has(i)?'on':''}" style="left:${n[0]}%;top:${Y(n[1])}%"><small>${n[2]}</small><b>${n[3]}</b><em>${n[4]} LOC</em></div>`).join('')+
+ `<div class="tb"><b>${N.length}</b> nodes · <b>${E.length}</b> edges · avg risk <b>41</b> ${imp?'· <span style="color:var(--red)">blast radius 7</span>':''}</div>`}
+$$('.g').forEach(g=>graph(g,'graph'));
+// mockups
+const bar=(l,v,c)=>`<div class="r"><span>${l}</span><div class="tr"><i data-w="${v}" style="background:var(--${c})"></i></div><b>${v}</b></div>`;
+const M=[
+['scan',()=>`<div class="gc" style="height:420px"><div class="card"><svg width="58" height="58" viewBox="0 0 48 48" fill="none" stroke="#7DB6E6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l13-5 14 5 13-5v29l-13 5-14-5-13 5z"/><path d="M17 7v29M31 12v29" opacity=".35"/><path d="M11 24l13-6 13 9"/><circle cx="11" cy="24" r="2.6" fill="#7DB6E6"/><circle cx="24" cy="18" r="2.6" fill="#F43F5E" stroke="#F43F5E"/><circle cx="37" cy="27" r="2.6" fill="#A3B1E6" stroke="#A3B1E6"/></svg><h4 style="color:#fff">Map your codebase</h4><div style="color:var(--t3)">Turn a local repository into an interactive architecture map.</div><div class="in">/Users/you/projects/my-app</div><div style="text-align:left;color:var(--t2)">☑ Generate AI summaries after scan</div><div class="go">Analyze repository</div></div></div>`],
+['graph',()=>`<div class="gc g2" style="height:420px"></div>`,e=>graph($('.g2',e),'graph')],
+['risk profile',()=>`<div class="pane"><h4>graph.py <span class="rk">Risk 82</span></h4><div style="color:var(--t3)">app/services/graph.py · python</div><div class="sec">Risk profile</div><div class="bars">${bar('Fan-in',88,'red')+bar('Complexity',64,'amb')+bar('Churn',31,'grn')+bar('Fan-out',22,'grn')}</div><div class="sec">Jev analysis</div><div class="row">⚠ Structural chokepoint <span class="chip">CORE-BUSINESS-LOGIC</span></div><div class="row">Framework: FastAPI · Neo4j driver</div></div>`],
+['inspector',()=>`<div class="pane"><h4>graph.py <span class="rk">Risk 82</span></h4><div class="sec">AI summary</div><div>Builds and queries the Neo4j dependency graph; the central service every API route relies on. <span style="color:var(--t3)">Generated by AI</span></div><div class="sec">Symbols</div><div class="row">GraphService<span class="chip">CLASS</span></div><div class="row">build_graph<span class="chip">FUNCTION</span></div><div class="sec">Imports</div><div class="row">→ neo4j.py</div><div class="sec">Dependents</div><div class="row">← routes.py</div><div style="display:flex;gap:8px;margin-top:14px"><span class="go" style="background:var(--cy);color:#0B2036;padding:6px 12px;border-radius:6px;font-weight:600">Trace impact</span><span style="border:1px solid #2F5B82;padding:6px 12px;border-radius:6px">Ask about file</span></div></div>`],
+['ask',()=>`<div class="gc" style="height:420px;padding-top:10px"><div class="pal"><div class="q">🔍 Where does authentication happen?</div><div class="it s">deps.py<small>app/api · get_current_user, verify_token</small></div><div class="it">routes.py<small>app/api · /login endpoint</small></div><div class="it" style="border-top:1px solid var(--p-b);color:var(--t2)">Auth is enforced by <b style="color:var(--cy)">deps.py</b> and attached to routes in <b style="color:var(--cy)">routes.py</b>.</div></div></div>`],
+['impact',()=>`<div style="position:relative"><div class="gc g3" style="height:420px"></div><div style="position:absolute;right:12px;top:12px;background:rgba(11,32,54,.92);border:1px solid var(--p-b);border-radius:10px;padding:12px 14px;width:190px;font-size:12px"><b style="color:var(--t3);font-size:10px;letter-spacing:.12em">IMPACT TRACE</b><div style="color:var(--red);font-weight:600;margin:4px 0">HIGH RISK</div>Blast radius <b style="color:#fff">7/10</b><br>Strategy: <span style="color:var(--cy)">incremental adapter</span></div></div>`,e=>graph($('.g3',e),'impact')]];
+const mock=$('#mock'),dots=$$('#dots i'),sts=$$('.st');let cur=-1;
+function show(i){if(i===cur)return;cur=i;mock.style.opacity=0;setTimeout(()=>{mock.innerHTML=M[i][1]();M[i][2]&&M[i][2](mock);$('#ttl').textContent=M[i][0];mock.style.opacity=1;requestAnimationFrame(()=>$$('[data-w]',mock).forEach(b=>b.style.width=b.dataset.w+'%'))},RM?0:250);dots.forEach((d,k)=>d.classList.toggle('on',k===i));sts.forEach((s,k)=>s.classList.toggle('on',k===i))}
+show(0);
+const so=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)show(sts.indexOf(e.target))}),{rootMargin:'-42% 0px -42% 0px'});sts.forEach(s=>so.observe(s));
+// reveal
+const ro=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');ro.unobserve(e.target)}}),{threshold:.15});
+$$('.rv,.chaos,.sq').forEach(e=>ro.observe(e));
+// stats
+const co=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;co.unobserve(e.target);const el=e.target,n=+el.dataset.n,s=el.dataset.s||'',t0=performance.now();(function f(t){const p=Math.min((t-t0)/1800,1);el.textContent=Math.round(n*(1-Math.pow(1-p,3)))+(p>=1?s.replace('%+','%+'):'');if(p<1)requestAnimationFrame(f)})(t0)}),{threshold:.6});
+$$('[data-n]').forEach(e=>co.observe(e));
+// tech
+const T=[['Frontend','Next.js 16 · React 19 · TypeScript 5.8 · ReactFlow 11 · Dagre'],['Backend','FastAPI · Python 3.12+ · uv'],['Database','Neo4j 5 Community · APOC · Vector index'],['AI System One','TypeSafe Jev SDK · Choice, Noul, Score'],['AI System Two','Google Gemini · Ollama · text-embedding-004'],['Analysis','Python ast · Tree-sitter · GitPython'],['UI Kit','react-resizable-panels · lucide-react · react-markdown · remark-gfm'],['Quality','pytest · vitest · ruff · mypy · GitHub Actions'],['Deployment','Docker Compose · Neo4j + Backend + Frontend']];
+$('#tg').innerHTML=T.map((t,i)=>`<div class="tc rv" style="--d:${i%3}"><h4>${t[0]}</h4><p>${t[1]}</p></div>`).join('');$$('.tc').forEach(e=>ro.observe(e));
+// terminal
+const L=['<span class="c"># 1. Clone the repository</span>','git clone https://github.com/mahinigam/codebase-cartographer.git','cd codebase-cartographer','','<span class="c"># 2. Configure environment</span>','cp .env.example .env','','<span class="c"># 3. Start Neo4j</span>','docker compose up -d neo4j','','<span class="c"># 4a. Backend</span>','cd backend &amp;&amp; uv sync','uv run uvicorn app.main:app --reload --port 8000','','<span class="c"># 4b. Frontend</span>','cd frontend &amp;&amp; npm install &amp;&amp; npm run dev','','<span class="k">→ Open http://localhost:5173</span>'];
+const term=$('#term');let done=false;
+new IntersectionObserver((es,o)=>{if(es[0].isIntersecting&&!done){done=true;o.disconnect();let i=0;(function n(){term.innerHTML=L.slice(0,i+1).join('\n')+'<span class="caret"></span>';if(++i<L.length)setTimeout(n,RM?0:i%3?260:520)})()}},{threshold:.4}).observe(term);
+// crayon cursor trail
+const cv=$('#cv'),cx=cv.getContext('2d'),cols=['#294B3A','#3F4F80','#174A78','#5F9B7E'];let live=0,ci=0;
+function rs(){cv.width=innerWidth;cv.height=innerHeight}rs();addEventListener('resize',rs);
+function loop(){cx.globalCompositeOperation='destination-out';cx.fillStyle='rgba(0,0,0,.045)';cx.fillRect(0,0,cv.width,cv.height);cx.globalCompositeOperation='source-over';if(--live>0)requestAnimationFrame(loop);else cx.clearRect(0,0,cv.width,cv.height)}
+if(!RM)addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;if(!live){live=300;requestAnimationFrame(loop)}live=300;ci=(ci+.06)%4;cx.fillStyle=cols[ci|0];for(let i=0;i<7;i++){cx.globalAlpha=.25+Math.random()*.4;cx.beginPath();cx.arc(e.clientX+(Math.random()-.5)*14,e.clientY+(Math.random()-.5)*14,Math.random()*2.6+.6,0,7);cx.fill()}cx.globalAlpha=1});
+// scroll: tilt + parallax
+const hw=$('#heroWin'),bl=$$('.blob[data-p]');
+function sc(){const y=scrollY;if(!RM){hw.style.transform=`rotateX(${Math.max(0,18-y/16)}deg) scale(${Math.min(1,.94+y/6000)})`;bl.forEach(b=>b.style.transform=`translateY(${-y*b.dataset.p*.3}px)`)}}
+addEventListener('scroll',sc,{passive:true});sc();
+</script>
+</body>
+</html>
