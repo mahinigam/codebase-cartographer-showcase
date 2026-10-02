@@ -93,6 +93,7 @@ nav b{font:600 20px var(--serif);color:var(--ink)}nav b i{color:var(--g)}
 @keyframes wob{50%{transform:translate(4px,-3px)}}
 /* steps */
 #how{background:linear-gradient(var(--bg),var(--bg2) 20%,var(--bg2) 80%,var(--bg))}
+.swipe-hint{display:none}
 .how{display:grid;grid-template-columns:1fr 1.25fr;gap:56px}
 .steps .st{min-height:78vh;display:flex;flex-direction:column;justify-content:center;opacity:.28;transition:.5s}
 .steps .st.on{opacity:1}
@@ -148,9 +149,12 @@ footer h3{font-size:34px}footer a{color:var(--b)}
   .sg{grid-template-columns:1fr 1fr}
   .how{display:flex;flex-direction:column;gap:24px}
   .sticky{position:relative;top:0;z-index:5;order:1}
-  .steps{display:flex;flex-direction:row;overflow-x:auto;scroll-snap-type:x mandatory;order:2;padding-bottom:10px;scrollbar-width:none;width:100%}
-  .steps::-webkit-scrollbar{display:none}
-  .steps .st{min-width:100%;min-height:auto;scroll-snap-align:center;opacity:1;padding:0;box-sizing:border-box}
+  .steps{position:relative;height:420px;order:2;width:100%;touch-action:pan-y;user-select:none;margin-top:20px}
+  .steps .st{position:absolute;inset:0;opacity:0;pointer-events:none;padding:34px 28px;background:#FBFCFA;border:2px solid var(--ink);border-radius:24px;display:flex;flex-direction:column;will-change:transform, opacity}
+  .steps .st h3{font-size:26px}
+  .steps .n{font-size:60px;margin-bottom:8px}
+  .swipe-hint{display:flex;align-items:center;gap:6px;position:absolute;bottom:28px;right:28px;z-index:20;background:var(--g);color:#fff;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;pointer-events:none;animation:hb 2s infinite;transition:opacity .3s}
+  @keyframes hb{0%,100%{transform:translateX(0)}50%{transform:translateX(6px)}}
   .bonds{grid-template-columns:1fr}
   .stage .win{transform:none!important}
   .gc{height:330px}
@@ -232,6 +236,7 @@ h1 em:after,h2 em:after{content:"";position:absolute;left:-3%;right:-3%;bottom:.
 <svg class="sq" viewBox="0 0 1000 50" preserveAspectRatio="none"><path style="stroke:#294B3A" d="M5 30C80 5 130 48 210 26S330 6 420 30 560 44 650 22 800 8 880 30 960 34 995 20"/></svg>
 <section id="how"><div class="wrap"><div class="eyebrow">How it works</div><h2 style="margin-bottom:40px">Six steps from <em>folder</em> to <em>map.</em></h2>
   <div class="how"><div class="steps" id="steps">
+   <div class="swipe-hint" id="swipe-hint">Swipe <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
    <div class="st"><div class="n">01</div><h3>Point. Scan. Index.</h3><p>Paste an absolute path to any local repository. Cartographer parses every Python, JavaScript, and TypeScript file — classes, functions, imports, cyclomatic complexity. GitPython mines up to 500 commits for churn.</p></div>
    <div class="st"><div class="n">02</div><h3>From flat files to a knowledge graph.</h3><p>Every file becomes a node. Every import becomes an edge. A full Neo4j graph of your true dependency architecture — not the folder structure.</p></div>
    <div class="st"><div class="n">03</div><h3>Find what's fragile before it breaks.</h3><p>A composite risk score: 45% fan-in, 25% complexity, 20% Git churn, 10% fan-out. Jev enhances it with semantic scoring — flagging chokepoints, security-critical files and abandoned code.</p></div>
@@ -300,13 +305,91 @@ function show(i){if(i===cur)return;cur=i;mock.style.opacity=0;setTimeout(()=>{mo
 show(0);
 const so=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting && innerWidth>860)show(sts.indexOf(e.target))}),{rootMargin:'-42% 0px -42% 0px'});sts.forEach(s=>so.observe(s));
 const _stc=$('.steps');
-_stc.addEventListener('scroll', ()=>{
-  if(innerWidth<=860) show(Math.round(_stc.scrollLeft / _stc.clientWidth));
-}, {passive:true});
+let stc_arr = [...sts];
+let isDragging = false, startX = 0, currentX = 0;
+
+function updateStack() {
+  if(innerWidth > 860) {
+    sts.forEach(s => s.removeAttribute('style'));
+    return;
+  }
+  stc_arr.forEach((s, i) => {
+    s.style.transition = 'transform 0.4s cubic-bezier(0.16,1,0.3,1), opacity 0.4s, box-shadow 0.4s';
+    if(i === 0) {
+      s.style.transform = `translateY(0px) scale(1) rotate(0deg)`;
+      s.style.opacity = 1;
+      s.style.zIndex = 10;
+      s.style.pointerEvents = 'auto';
+      s.style.boxShadow = `4px 6px 0 var(--g)`;
+    } else if(i === 1) {
+      s.style.transform = `translateY(20px) scale(0.96) rotate(-2deg)`;
+      s.style.opacity = 1;
+      s.style.zIndex = 9;
+      s.style.pointerEvents = 'none';
+      s.style.boxShadow = `4px 6px 0 rgba(41,75,58,0.5)`;
+    } else if(i === 2) {
+      s.style.transform = `translateY(40px) scale(0.92) rotate(2deg)`;
+      s.style.opacity = 1;
+      s.style.zIndex = 8;
+      s.style.pointerEvents = 'none';
+      s.style.boxShadow = `4px 6px 0 rgba(41,75,58,0.2)`;
+    } else if(i === 3) {
+      s.style.transform = `translateY(56px) scale(0.88) rotate(-1.5deg)`;
+      s.style.opacity = 0.5;
+      s.style.zIndex = 7;
+      s.style.pointerEvents = 'none';
+      s.style.boxShadow = `2px 4px 0 rgba(41,75,58,0.1)`;
+    } else {
+      s.style.transform = `translateY(70px) scale(0.84)`;
+      s.style.opacity = 0;
+      s.style.zIndex = 6;
+      s.style.pointerEvents = 'none';
+      s.style.boxShadow = 'none';
+    }
+  });
+  show(sts.indexOf(stc_arr[0]));
+}
+
+_stc.addEventListener('touchstart', e => {
+  if(innerWidth > 860) return;
+  isDragging = true;
+  startX = e.touches[0].clientX;
+  stc_arr[0].style.transition = 'none';
+  const hint = $('#swipe-hint');
+  if(hint) hint.style.opacity = '0';
+}, {passive: true});
+
+_stc.addEventListener('touchmove', e => {
+  if(!isDragging || innerWidth > 860) return;
+  currentX = e.touches[0].clientX - startX;
+  stc_arr[0].style.transform = `translateX(${currentX}px) translateY(0px) rotate(${currentX * 0.05}deg) scale(1)`;
+}, {passive: true});
+
+_stc.addEventListener('touchend', e => {
+  if(!isDragging || innerWidth > 860) return;
+  isDragging = false;
+  if(Math.abs(currentX) > 80) {
+    stc_arr[0].style.transition = 'transform 0.4s ease-out';
+    stc_arr[0].style.transform = `translateX(${currentX > 0 ? 400 : -400}px) translateY(0px) rotate(${currentX * 0.1}deg) scale(1)`;
+    setTimeout(() => {
+      stc_arr.push(stc_arr.shift());
+      updateStack();
+    }, 300);
+  } else {
+    updateStack();
+  }
+  currentX = 0;
+});
+
 dots.forEach((d,k)=>d.addEventListener('click', ()=>{
-  if(innerWidth<=860) _stc.scrollTo({left: k * _stc.clientWidth, behavior: 'smooth'});
-  else sts[k].scrollIntoView({behavior: 'smooth', block: 'center'});
+  if(innerWidth<=860) {
+    while(sts.indexOf(stc_arr[0]) !== k) stc_arr.push(stc_arr.shift());
+    updateStack();
+  } else sts[k].scrollIntoView({behavior: 'smooth', block: 'center'});
 }));
+
+window.addEventListener('resize', updateStack);
+updateStack();
 // reveal
 const ro=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');ro.unobserve(e.target)}}),{threshold:.15});
 $$('.rv,.chaos,.sq').forEach(e=>ro.observe(e));
