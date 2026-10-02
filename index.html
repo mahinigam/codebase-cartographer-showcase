@@ -137,7 +137,37 @@ nav b{font:600 20px var(--serif);color:var(--ink)}nav b i{color:var(--g)}
 table{width:100%;border-collapse:collapse;font-size:15px;margin-top:18px}td,th{text-align:left;padding:8px 10px;border-bottom:1px dashed var(--line)}code{font-family:var(--mono);font-size:13px;color:var(--b)}
 footer{padding:80px 0 50px;text-align:center;position:relative;overflow:hidden}
 footer h3{font-size:34px}footer a{color:var(--b)}
-@media(max-width:860px){section{padding:80px 0}.two,.how,.cmp{grid-template-columns:1fr}.ws{grid-template-columns:1fr}.ws aside{display:none}.sg{grid-template-columns:1fr 1fr}.steps .st{min-height:auto;padding:40px 0;opacity:1}.sticky{position:relative;top:0;order:-1;position:sticky;top:60px;z-index:5}.bonds{grid-template-columns:1fr}.stage .win{transform:none!important}.gc{height:330px}}
+@media(max-width:860px){
+  html,body{overflow-x:hidden!important;max-width:100vw}
+  section{padding:60px 0}
+  .wrap{max-width:100%;overflow:hidden}
+  .two,.how,.cmp{grid-template-columns:1fr}
+  .two>div{min-width:0}
+  .ws{grid-template-columns:1fr;height:auto}
+  .ws aside{display:none}
+  .sg{grid-template-columns:1fr 1fr}
+  .how{display:flex;flex-direction:column;gap:24px}
+  .sticky{position:relative;top:0;z-index:5;order:1}
+  .steps{display:flex;flex-direction:row;overflow-x:auto;scroll-snap-type:x mandatory;order:2;padding-bottom:10px;scrollbar-width:none;width:100%}
+  .steps::-webkit-scrollbar{display:none}
+  .steps .st{min-width:100%;min-height:auto;scroll-snap-align:center;opacity:1;padding:0;box-sizing:border-box}
+  .bonds{grid-template-columns:1fr}
+  .stage .win{transform:none!important}
+  .gc{height:330px}
+  /* Scale down graph nodes on mobile to prevent overlap */
+  .nd{width:76px;padding:5px 4px}
+  .nd small{font-size:6px;letter-spacing:0}
+  .nd b{font-size:9px}
+  .nd em{display:none} /* Hide LOC on mobile to save space */
+  .tb{font-size:9px;padding:4px 8px;width:85%;white-space:normal;text-align:center}
+  
+  .term{box-shadow:none!important;min-height:auto;font-size:11px;padding:16px;border-radius:14px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+  #hero h1{font-size:clamp(38px,10vw,104px)}
+  .ctas{gap:12px}
+  .btn{padding:12px 20px;font-size:15px}
+  .sg b{font-size:clamp(36px,10vw,78px)}
+  .pal{max-width:100%}
+}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rv,#hero h1 span,#hero p.sub,.ctas{opacity:1;transform:none}.chaos path{stroke-dashoffset:0}}
 .blk{filter:url(#crayon)}
 .ck{position:relative}.ck:before{content:"";position:absolute;inset:-4px;border:2.5px solid var(--ink);border-radius:inherit;filter:url(#crayon);pointer-events:none}
@@ -268,7 +298,15 @@ const M=[
 const mock=$('#mock'),dots=$$('#dots i'),sts=$$('.st');let cur=-1;
 function show(i){if(i===cur)return;cur=i;mock.style.opacity=0;setTimeout(()=>{mock.innerHTML=M[i][1]();M[i][2]&&M[i][2](mock);$('#ttl').textContent=M[i][0];mock.style.opacity=1;requestAnimationFrame(()=>$$('[data-w]',mock).forEach(b=>b.style.width=b.dataset.w+'%'))},RM?0:250);dots.forEach((d,k)=>d.classList.toggle('on',k===i));sts.forEach((s,k)=>s.classList.toggle('on',k===i))}
 show(0);
-const so=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)show(sts.indexOf(e.target))}),{rootMargin:'-42% 0px -42% 0px'});sts.forEach(s=>so.observe(s));
+const so=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting && innerWidth>860)show(sts.indexOf(e.target))}),{rootMargin:'-42% 0px -42% 0px'});sts.forEach(s=>so.observe(s));
+const _stc=$('.steps');
+_stc.addEventListener('scroll', ()=>{
+  if(innerWidth<=860) show(Math.round(_stc.scrollLeft / _stc.clientWidth));
+}, {passive:true});
+dots.forEach((d,k)=>d.addEventListener('click', ()=>{
+  if(innerWidth<=860) _stc.scrollTo({left: k * _stc.clientWidth, behavior: 'smooth'});
+  else sts[k].scrollIntoView({behavior: 'smooth', block: 'center'});
+}));
 // reveal
 const ro=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');ro.unobserve(e.target)}}),{threshold:.15});
 $$('.rv,.chaos,.sq').forEach(e=>ro.observe(e));
@@ -289,7 +327,7 @@ function loop(){cx.globalCompositeOperation='destination-out';cx.fillStyle='rgba
 if(!RM)addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;if(!live){live=300;requestAnimationFrame(loop)}live=300;ci=(ci+.06)%4;cx.fillStyle=cols[ci|0];for(let i=0;i<7;i++){cx.globalAlpha=.25+Math.random()*.4;cx.beginPath();cx.arc(e.clientX+(Math.random()-.5)*14,e.clientY+(Math.random()-.5)*14,Math.random()*2.6+.6,0,7);cx.fill()}cx.globalAlpha=1});
 // scroll: tilt + parallax
 const hw=$('#heroWin'),bl=$$('.blob[data-p]');
-function sc(){const y=scrollY;if(!RM){hw.style.transform=`rotateX(${Math.max(0,18-y/16)}deg) scale(${Math.min(1,.94+y/6000)})`;bl.forEach(b=>b.style.transform=`translateY(${-y*b.dataset.p*.3}px)`)}}
+function sc(){if(innerWidth<=860)return;const y=scrollY;if(!RM){hw.style.transform=`rotateX(${Math.max(0,18-y/16)}deg) scale(${Math.min(1,.94+y/6000)})`;bl.forEach(b=>b.style.transform=`translateY(${-y*b.dataset.p*.3}px)`)}}
 addEventListener('scroll',sc,{passive:true});sc();
 </script>
 </body>
